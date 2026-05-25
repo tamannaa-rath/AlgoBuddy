@@ -26,7 +26,7 @@ const sequences = {
   list: ["A", "B", "C", "E"],
   bfs: ["A", "B", "D", "C", "E"],
   dfs: ["A", "B", "C", "E", "D"],
-  dijkstra: ["A", "B", "C", "E", "D"],
+  dijkstra: ["A", "B", "C", "D", "E"],
   prim: ["A", "B", "C", "E", "D"],
   kruskal: ["A-B", "B-C", "D-E", "B-E"],
   topological: ["A", "B", "D", "C", "E"],
@@ -54,6 +54,47 @@ export default function GraphAnimation({ type = "bfs", title = "Graph" }) {
 
   const activeEdges = useMemo(() => {
     if (type === "kruskal") return new Set(sequence.slice(0, step + 1));
+
+    if (type === "dijkstra") {
+    const selected = new Set();
+    const activeNodesList = sequence.slice(0, step + 1);
+    
+    if (activeNodesList.length > 0) {
+      const distances = {};
+      const parents = {};
+      
+      // Initialize all nodes to Infinity
+      nodes.forEach(n => distances[n.id] = Infinity);
+      
+      // The first node in the sequence is the source node
+      const source = activeNodesList[0];
+      distances[source] = 0;
+      
+      // Simulate edge relaxation only for nodes processed up to this step
+      for (const u of activeNodesList) {
+        // Find all edges connected to the currently processed node u
+        const connectedEdges = edges.filter(e => e.from === u || e.to === u);
+        
+        for (const edge of connectedEdges) {
+          const v = edge.from === u ? edge.to : edge.from;
+          
+          // Only consider relaxing edges to nodes that are still active (i.e., in the current sequence)
+          if (activeNodesList.includes(v)) {
+            const newDist = distances[u] + edge.weight;
+            if (newDist < distances[v]) {
+              distances[v] = newDist;
+              parents[v] = edgeId(edge); // Cache the winning edge ID
+            }
+          }
+        }
+      }
+      
+      // Collect the exact winning shortest-path edges into our rendering set
+      Object.values(parents).forEach(id => selected.add(id));
+    }
+    return selected;
+  }
+
     const selected = new Set();
     const active = sequence.slice(0, step + 1);
     for (let i = 1; i < active.length; i += 1) {
